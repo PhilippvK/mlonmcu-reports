@@ -36,7 +36,6 @@ backend_colors = {
     "ireellvm_inline": "tab:olive",
     "ireellvmc": "tab:cyan",
     "ireellvmc_inline": "tab:cyan",
-
 }
 
 backend_hatches = {
@@ -85,8 +84,28 @@ MODEL_NAMES = {
 """
 
 # filter_models = ["gtsrb_cnn_supernet_preprocessed", "gtsrb_cnn_supernet_preprocessed_quant_static_qoperator"]
-filter_models = ["micro_kws_m_fp32", "micro_kws_m_quantized", "micro_kws_m_static_fp32", "micro_kws_m_static_qoperator_emx", "micro_kws_m_quantized_static.tosa", "micro_kws_m_fp32_static.tosa"]
-filter_backends = ["emx", "tvmaotplus", "tvmaotplus_tuned", "tflmi", "ireellvm", "ireellvmc", "ireellvm_inline", "ireellvmc_inline", "tvmllvm", "tvmllvm_tuned", "tvmaot", "tvmaot_tuned"]
+filter_models = [
+    "micro_kws_m_fp32",
+    "micro_kws_m_quantized",
+    "micro_kws_m_static_fp32",
+    "micro_kws_m_static_qoperator_emx",
+    "micro_kws_m_quantized_static.tosa",
+    "micro_kws_m_fp32_static.tosa",
+]
+filter_backends = [
+    "emx",
+    "tvmaotplus",
+    "tvmaotplus_tuned",
+    "tflmi",
+    "ireellvm",
+    "ireellvmc",
+    "ireellvm_inline",
+    "ireellvmc_inline",
+    "tvmllvm",
+    "tvmllvm_tuned",
+    "tvmaot",
+    "tvmaot_tuned",
+]
 
 # ---------------------------
 # Input handling
@@ -114,6 +133,7 @@ df = df.drop_duplicates()
 
 import ast
 
+
 def parse_config(x):
     if isinstance(x, dict):
         return x
@@ -122,7 +142,9 @@ def parse_config(x):
     except Exception:
         return {}
 
+
 df["Config"] = df["Config"].apply(parse_config)
+
 
 def detect_autotuned(row):
     backend = row["Backend"]
@@ -137,6 +159,7 @@ def detect_autotuned(row):
         if backend.startswith("tvm"):
             return True
     return False
+
 
 def detect_attrs(row):
     backend = row["Backend"]
@@ -191,6 +214,7 @@ def detect_attrs(row):
 
     return attrs_str
 
+
 df["Autotuned"] = df.apply(detect_autotuned, axis=1)
 df["Attrs"] = df.apply(detect_attrs, axis=1)
 df["Backend"] = df.apply(lambda row: f"{row.Backend}_tuned" if row.Autotuned else row.Backend, axis=1)
@@ -210,6 +234,8 @@ df["Model"] = df["Model"].apply(lambda x: MODEL_NAMES.get(x, x))
 
 
 AGGREGATE_METRICS = True
+
+
 def make_backend_variant(row, df_grouped):
     """
     row: single row of df
@@ -234,6 +260,7 @@ def make_backend_variant(row, df_grouped):
         f"{base_backend} [max]",
     ]
 
+
 # df["BackendVariant"] = df.apply(
 #     lambda row: row["Backend"] if not row["Attrs"]
 #     else f"{row['Backend']} [{row['Attrs']}]",
@@ -242,7 +269,7 @@ def make_backend_variant(row, df_grouped):
 if AGGREGATE_METRICS:
     # Pre-group by Model + Backend
     df_variants = []
-    for (model, backend), group in df.groupby(['Model', 'Backend']):
+    for (model, backend), group in df.groupby(["Model", "Backend"]):
         metric_cols = [m for m in metrics if m in group.columns]
         if AGGREGATE_METRICS and len(group) > 1:
             # Compute min/mean/max per metric
@@ -251,16 +278,16 @@ if AGGREGATE_METRICS:
                 "mean": group[metric_cols].mean(),
                 "max": group[metric_cols].max(),
             }
-    
+
             # Create one row per aggregation
             for stat in ["min", "mean", "max"]:
                 row = group.iloc[0].copy()  # take first row as template
                 row["BackendVariant"] = f"{backend} [{stat}]"
                 row["Attrs"] = stat
-    
+
                 for col in metric_cols:
                     row[col] = agg_values[stat][col]
-    
+
                 df_variants.append(row)
         else:
             # Only one attribute, keep original row
@@ -274,16 +301,29 @@ if AGGREGATE_METRICS:
 else:
     # Original behavior: one BackendVariant per row
     df["BackendVariant"] = df.apply(
-        lambda row: row["Backend"] if not row["Attrs"]
-        else f"{row['Backend']} [{row['Attrs']}]",
-        axis=1
+        lambda row: row["Backend"] if not row["Attrs"] else f"{row['Backend']} [{row['Attrs']}]", axis=1
     )
 
 models = sorted(df["Model"].unique())
 # backends = sorted(df["Backend"].unique())
 backends = sorted(df["BackendVariant"].unique())
 
-TO_DROP = ["Run", "Platform", "Comment", "Reason", "Failing", "Kernels Size", "Postprocesses", "Config", "Load Stage Time [s]", "Build Stage Time [s]", "Compile Stage Time [s]", "Run Stage Time [s]", "Workspace Size [B]", "Features"]
+TO_DROP = [
+    "Run",
+    "Platform",
+    "Comment",
+    "Reason",
+    "Failing",
+    "Kernels Size",
+    "Postprocesses",
+    "Config",
+    "Load Stage Time [s]",
+    "Build Stage Time [s]",
+    "Compile Stage Time [s]",
+    "Run Stage Time [s]",
+    "Workspace Size [B]",
+    "Features",
+]
 for col in TO_DROP:
     if col in df.columns:
         df.drop(columns=[col], inplace=True)
@@ -318,12 +358,7 @@ for idx, metric in enumerate(metrics):
             #     (df["Backend"] == backend) &
             #     (df["Model"] == model)
             # ]
-            temp = df[
-                (df["BackendVariant"] == backend) &
-                (df["Model"] == model)
-            ]
-
-
+            temp = df[(df["BackendVariant"] == backend) & (df["Model"] == model)]
 
             if len(temp) > 0:
                 temp_vals = temp[metric]
@@ -337,9 +372,9 @@ for idx, metric in enumerate(metrics):
 
         base_backend = backend.split(" [")[0]
         bars = ax.bar(
-            x + (i - len(backends)/2) * width + width/2,
+            x + (i - len(backends) / 2) * width + width / 2,
             values,
-            width=width*0.8,
+            width=width * 0.8,
             label=backend,
             color=backend_colors.get(base_backend, "gray"),
             hatch=backend_hatches.get(base_backend, None),
@@ -348,17 +383,14 @@ for idx, metric in enumerate(metrics):
         for j, bar in enumerate(bars):
 
             model = models[j]
-        
-            temp = df[
-                (df["BackendVariant"] == backend) &
-                (df["Model"] == model)
-            ]
-        
+
+            temp = df[(df["BackendVariant"] == backend) & (df["Model"] == model)]
+
             if len(temp) == 0:
                 continue
-        
+
             attrs = temp["Attrs"].iloc[0]
-        
+
             if attrs:
                 # optional shortening
                 attrs_short = (
@@ -366,9 +398,9 @@ for idx, metric in enumerate(metrics):
                     # .replace("NoAlterOpLayout", "NoLayoutOpt")
                     # .replace(",", "\n")
                 )
-        
+
                 ax.text(
-                    bar.get_x() + bar.get_width()/2,
+                    bar.get_x() + bar.get_width() / 2,
                     # bar.get_height() ,
                     # 1.0-0.02,
                     0.02,
@@ -436,4 +468,3 @@ plt.savefig("benchmark_overview.png", dpi=300)
 plt.close(fig)
 
 print("Plot generated: benchmark_overview.png")
-

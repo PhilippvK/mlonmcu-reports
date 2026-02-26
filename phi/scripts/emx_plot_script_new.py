@@ -60,7 +60,18 @@ MODEL_NAMES = {
 }
 
 filter_models = ["gtsrb_cnn_supernet_preprocessed", "gtsrb_cnn_supernet_preprocessed_quant_static_qoperator"]
-filter_backends = ["emx", "tvmaotplus", "tvmaotplus_tuned", "tflmi", "ireellvm", "ireellvmc", "ireellvm_inline", "ireellvmc_inline", "tvmllvm", "tvmllvm_tuned"]
+filter_backends = [
+    "emx",
+    "tvmaotplus",
+    "tvmaotplus_tuned",
+    "tflmi",
+    "ireellvm",
+    "ireellvmc",
+    "ireellvm_inline",
+    "ireellvmc_inline",
+    "tvmllvm",
+    "tvmllvm_tuned",
+]
 
 # ---------------------------
 # Input handling
